@@ -1,0 +1,58 @@
+- hosts: web
+  tasks: 
+  - name: "Install httpd and php"
+    package:
+       name: "{{ item }}"
+       state: present
+    loop:
+       - "httpd"
+       - "php"
+
+
+  - name: "Copy the webpages"
+    copy:
+       src: "index.php"
+       dest: "/var/www/html/index.php"
+
+
+  - name: "Start service"
+    service:
+       name: httpd
+       state: started
+
+
+  - name: "create firewall rule"
+    firewalld:
+       port: "80/tcp"
+       state: "enabled"
+       immediate: yes
+
+
+- hosts: lb
+  tasks:
+  - name: "Install haproxy"
+    package:
+       name: "haproxy"
+ 
+
+  - name: "Copy the configuration file"
+    template:
+       dest: "/etc/haproxy/haproxy.cfg"
+       src: "haproxy.cfg.j2"
+    notify: REStart haproxy service
+
+
+
+  - name: "create firewall rule"
+    firewalld:
+       port: "8080/tcp"
+       state: "enabled"
+       immediate: yes
+
+
+  handlers:
+  - name: "REStart haproxy service"
+    service:
+       name: haproxy
+       state: restarted
+       enabled: yes
